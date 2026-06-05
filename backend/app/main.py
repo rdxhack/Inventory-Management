@@ -1,3 +1,4 @@
+import logging
 import time
 from contextlib import asynccontextmanager
 
@@ -9,14 +10,18 @@ from app.config import settings
 from app.database import Base, engine
 from app.routers import customers, inventory, orders, products
 
+logger = logging.getLogger(__name__)
 
-def init_db(retries: int = 10, delay: float = 2.0) -> None:
-    for attempt in range(retries):
+
+def init_db(retries: int = 15, delay: float = 3.0) -> None:
+    for attempt in range(1, retries + 1):
         try:
             Base.metadata.create_all(bind=engine)
+            logger.info("Database tables ready")
             return
-        except OperationalError:
-            if attempt == retries - 1:
+        except OperationalError as exc:
+            logger.warning("Database not ready (attempt %s/%s): %s", attempt, retries, exc)
+            if attempt == retries:
                 raise
             time.sleep(delay)
 
